@@ -26,45 +26,57 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Main {
-    static int totalCapacity;
-    static List<Item> items = new ArrayList<>();
-    static List<Item> bestItems = new ArrayList<>();
-    static int bestValue = 0;
+    // ANSI escape codes
+    // Normal Colors
+    public static final String RESET = "\u001B[0m";
 
-    public static void main(String[] args) throws FileNotFoundException {
-        readInput("src/Data/16");
-        generateCombinations(new ArrayList<>(), 0);
-        printBestSolution();
-    }
+    // High Intensity
+    public static final String BLACK_BRIGHT = "\033[0;90m";
+    public static final String GREEN_BRIGHT = "\033[0;92m";
+    public static final String YELLOW_BRIGHT = "\033[0;93m";
 
-    static void readInput(String filename) throws FileNotFoundException {
-        Scanner scanner = new Scanner(new File(filename));
-        totalCapacity = scanner.nextInt();
-        while (scanner.hasNextInt()) {
-            items.add(new Item(scanner.nextInt(), scanner.nextInt()));
-        }
-        scanner.close();
-    }
+    // 2^30 (1.073.741.824) kombinacji
+    // ok 160 sec = 2,6 min
 
-    static void generateCombinations(List<Item> currentItems, int currentIndex) {
-        if (currentIndex == items.size()) {
-            int totalWeight = currentItems.stream().mapToInt(item -> item.weight).sum();
-            int totalValue = currentItems.stream().mapToInt(item -> item.value).sum();
-            if (totalWeight <= totalCapacity && totalValue > bestValue) {
-                bestItems = new ArrayList<>(currentItems);
-                bestValue = totalValue;
+    public static void main(String[] args) {
+        String data = "src/Data/16";
+        //String data = "src/Data/fast";
+
+        Service service = new Service(data);
+
+        service.readInput();
+        System.out.println("Total capacity: " + service.capacity);
+        System.out.println("Total items: " + service.items.size());
+        System.out.println(YELLOW_BRIGHT + "Total combinations: " + (long) Math.pow(2, service.items.size()) + RESET);
+
+        // START
+        long startTime = System.currentTimeMillis();
+        Thread timerThread = new Thread(() -> {
+            while (true) {
+                long currentTime = System.currentTimeMillis();
+                long elapsedTime = currentTime - startTime;
+                System.out.println(BLACK_BRIGHT + "Elapsed time: " + elapsedTime / 1000.0 + " seconds" + RESET);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    System.out.println(GREEN_BRIGHT + "Elapsed time: " + elapsedTime / 1000.0 + " seconds" + RESET);
+                    break;
+                }
             }
-        } else {
-            generateCombinations(new ArrayList<>(currentItems), currentIndex + 1);
-            currentItems.add(items.get(currentIndex));
-            generateCombinations(currentItems, currentIndex + 1);
-        }
-    }
+        });
 
-    static void printBestSolution() {
-        System.out.println("Best solution:");
-        bestItems.forEach(item -> System.out.println("Weight: " + item.weight + ", Value: " + item.value));
-        System.out.println("Total weight: " + bestItems.stream().mapToInt(item -> item.weight).sum());
-        System.out.println("Total value: " + bestValue);
+        timerThread.start();
+
+        service.generateCombinations(new byte[30], 0);
+
+        timerThread.interrupt();
+        // STOP
+
+        service.printBestSolution();
     }
 }
